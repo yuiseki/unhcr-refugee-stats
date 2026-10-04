@@ -35,14 +35,36 @@ their own folder.
 ## Run
 
 ```sh
-uv run python scripts/01_download.py   # fetch into data/raw/<YYYY-MM-DD>/
-uv run python scripts/02_verify.py     # re-hash, test zips, count CSV rows
+uv run python scripts/01_download.py        # fetch into data/raw/<YYYY-MM-DD>/
 uv run python -m pytest
+uv run python scripts/03_export_parquet.py  # typed Parquet into data/parquet/<YYYY-MM-DD>/
+uv run python scripts/02_verify.py          # check raw files and Parquet
+uv run python src/publish.py                # dry run: what would go to the Hub
+uv run python src/publish.py --push         # upload to yuiseki/unhcr-refugee-stats
 ```
 
 `01_download.py` skips files already recorded in the manifest with a matching
 sha256. Each downloaded zip must contain exactly as many data rows as the API
 states for the same query (`maxPages` at `limit=1`).
+
+`03_export_parquet.py` exports UNHCR's own series only: the five zips under
+`unhcr/` (one table each), the `footnotes.csv` they share, and
+`countries.json`. Types come from a fixed table of column names (`Year` and
+the count columns as integers, `-` as NULL, everything else text); a value
+that does not fit stops the run. Column names are the CSV headings as they
+are.
+
+`02_verify.py` re-checks the raw files against the manifest, then compares
+each Parquet with its raw file: row counts, a sha256 over every value, the
+API's stated totals, the column types, and that a plain DuckDB opens it
+without bloom filters.
+
+`src/publish.py` uploads `data/README.md` (the dataset card), `data/LICENSE`,
+`data/provenance.yaml`, the Parquet and the raw files under `unhcr/`. It
+never uploads `third-party/` (Terms of Use for Datasets, item 6: third-party
+data may not be redistributed without the provider's consent), and it refuses
+to run if the card does not declare every Parquet file as a subset or a raw
+file differs from its manifest.
 
 ## Layout
 
@@ -57,11 +79,19 @@ data/raw/<YYYY-MM-DD>/
     solutions.zip
     demographics.zip
     countries.json           API country list (UNHCR code, ISO3, names, regions)
-  third-party/
+  third-party/               fetched, never published (Terms of Use item 6)
     idmc.zip                 IDMC internal displacement figures
     unrwa.zip                UNRWA registered Palestine refugees
+data/parquet/<YYYY-MM-DD>/   one Parquet per table: population, asylum-applications,
+                             asylum-decisions, solutions, demographics, footnotes, countries
+data/README.md               the dataset card on the Hub
+data/LICENSE
+data/provenance.yaml
 scripts/
   01_download.py
   02_verify.py
+  03_export_parquet.py
+src/
+  publish.py
 tests/
 ```

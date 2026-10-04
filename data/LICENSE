@@ -1,0 +1,53 @@
+Creative Commons Attribution 4.0 International (CC BY 4.0)
+https://creativecommons.org/licenses/by/4.0/
+subject to UNHCR's Terms of Use for Datasets
+https://www.unhcr.org/what-we-do/data-and-publications/data-and-statistics/terms-use-datasets
+
+Source: UNHCR Refugee Population Statistics Database.
+
+Everything under this directory comes from the UNHCR Refugee Population
+Statistics Database, through UNHCR's public API at
+https://api.unhcr.org/population/v1/.
+
+UNHCR's methodology page (https://www.unhcr.org/refugee-statistics/methodology/)
+says that, except where otherwise indicated, the datasets made available by
+UNHCR on the UNHCR Refugee Population Statistics Database are licensed under
+the Creative Commons Attribution 4.0 International Public License, and refers
+to the Terms of Use for Datasets. Those terms, read on 2026-10-04 in the
+Internet Archive's copy of 2026-09-21, require among other things:
+
+  - attribution in the form "UNHCR Refugee Population Statistics Database"
+    (item 3)
+  - the URL of the Terms of Use for Datasets whenever the datasets are shared
+    (item 4)
+  - no statement or suggestion that UNHCR participates in, sponsors, approves
+    or endorses the use (item 5)
+  - no use of UNHCR's name or emblem (item 7)
+
+They also say (item 6) that data provided by third parties may not be
+redistributed without the consent of the original provider. The IDMC and
+UNRWA series that UNHCR's API also serves are therefore not included here.
+UNHCR may change the terms at any time (item 14).
+
+This dataset is not made, sponsored or endorsed by UNHCR. It uses no UNHCR
+logo or emblem; UNHCR's name appears only to identify the source.
+
+The files under raw/<version>/unhcr/ are the API's files, byte for byte; each
+version's MANIFEST.json records their URLs, sizes, sha256 and Last-Modified
+(and also lists the third-party files fetched at the same time, which are not
+here).
+
+The Parquet under parquet/<version>/ was made from those files:
+
+  - Year of the five data tables typed as an integer, the count columns as
+    integers, and the "0" and "id" keys of the country list as integers;
+    every other column is the text of the source
+  - the "-" the CSVs write where there is no figure read as NULL
+  - footnotes.csv taken from population.zip (the five zips carry the same file)
+  - countries.json turned into one row per item, its keys as columns
+  - column names, including the source's misspelling "Returned IDPss", and
+    row order unchanged; no other value was changed
+
+The code that fetches, checks and converts is in the repository this dataset
+was built from (https://github.com/yuiseki/unhcr-refugee-stats) and does not
+apply here.

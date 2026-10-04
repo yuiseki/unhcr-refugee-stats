@@ -1,0 +1,81 @@
+# Where this data comes from and what was done to it.
+
+source:
+  name: UNHCR Refugee Population Statistics Database
+  publisher: Office of the United Nations High Commissioner for Refugees (UNHCR)
+  api: https://api.unhcr.org/population/v1/
+  api_docs: https://api.unhcr.org/docs/refugee-statistics.html
+  methodology: https://www.unhcr.org/refugee-statistics/methodology/
+  licence:
+    applied: CC BY 4.0, subject to UNHCR's Terms of Use for Datasets
+    terms_of_use: https://www.unhcr.org/what-we-do/data-and-publications/data-and-statistics/terms-use-datasets
+    read: 2026-10-04, Internet Archive copies (methodology 2026-07-30, Terms of Use 2026-09-21); www.unhcr.org answers scripts with a bot challenge
+    attribution_required: '"UNHCR Refugee Population Statistics Database" and the URL of the Terms of Use for Datasets'
+    no_endorsement: true
+    no_name_or_emblem: true
+    share_alike: false
+    other_labels: HDX lists UNHCR's copies of the data as cc-by-igo
+  excluded:
+    series: [idmc, unrwa]
+    reason: |
+      Terms of Use for Datasets, item 6: data provided by third parties may
+      not be shared, redistributed or reused without the consent of the
+      original data provider. No consent was sought. The files were fetched
+      into data/raw/<version>/third-party/ and are not published; the
+      MANIFEST.json uploaded with each version still lists them.
+
+versions:
+  note: |
+    The API serves only the current state of the database, which UNHCR
+    overwrites twice a year with revisions to past years, so the version is
+    the fetch date (UTC). Each file is the API's full-period download
+    (yearFrom=1951&yearTo=2027&coo_all=true&coa_all=true&download=true),
+    one row per year and pair of country of origin and country of asylum.
+  "2026-10-04":
+    files:
+      unhcr/population.zip: {bytes: 1080972, sha256: bcd3c13b05fb10aaf7cf1c3633896009ca7b40fcf9e796379fb89654b951a528, last_modified: "Sun, 04 Oct 2026 19:27:48 GMT"}
+      unhcr/asylum-applications.zip: {bytes: 740119, sha256: dbfccbacdc298ac304c7f83ddf5e6069c3aa82c908acd364b0bdf080545206a1, last_modified: "Sun, 04 Oct 2026 19:28:18 GMT"}
+      unhcr/asylum-decisions.zip: {bytes: 1024519, sha256: ea491ec9acee03a71d05800e760fbc5afe07282ecf8b2406ce1e090866e54595, last_modified: "Sun, 04 Oct 2026 19:28:32 GMT"}
+      unhcr/solutions.zip: {bytes: 177728, sha256: 046fdc263cdc1fe112e2817e5c414760fe61653b655beeb74acb89ea0062cbe0, last_modified: "Sun, 04 Oct 2026 19:28:49 GMT"}
+      unhcr/demographics.zip: {bytes: 1439280, sha256: 116b31cbc69c81e7e9d7df325e39f4c7463bfd22fa5f1c07c530e59d7b6bb96d, last_modified: "Sun, 04 Oct 2026 19:29:06 GMT"}
+      unhcr/countries.json: {bytes: 76642, sha256: 95ab18b84ba7e8c08481d4e7c146b8558fa617abd752358dba118b81ca7fff96}
+    fetched: 2026-10-04T19:27:39Z to 2026-10-04T19:29:17Z
+    tables:
+      population: {rows: 138893, years: 1951-2025, csv_columns: 14}
+      asylum-applications: {rows: 120597, years: 2000-2025, csv_columns: 10, applied_total: 40727399}
+      asylum-decisions:
+        rows: 113929
+        years: 2000-2025
+        csv_columns: 13
+        totals: {recognized: 7924994, complementary_protection: 3263685, rejected: 12977328, otherwise_closed: 11315163, total: 35497749}
+      solutions:
+        rows: 21258
+        years: 1959-2025
+        csv_columns: 9
+        totals: {returned_refugees: 53976271, resettlement_arrivals: 5708274, naturalisation: 2799379, returned_idps: 83575541}
+      demographics: {rows: 116781, years: 2001-2025, csv_columns: 20}
+      footnotes: {rows: 658, from: unhcr/population.zip, note: the same footnotes.csv in all five zips}
+      countries: {rows: 232, from: unhcr/countries.json}
+
+checked:
+  note: scripts/02_verify.py, with DuckDB, before upload
+  items:
+    - raw files against MANIFEST.json (size, sha256), zips intact, data CSV rows equal to the API's stated count
+    - every table present in the Parquet, none from third-party/
+    - Parquet rows equal to those counted from the raw file with Python's csv module (or JSON items) and to the API's stated count
+    - sha256 over every value of every row, in order, equal between raw and Parquet ("-" standing for NULL in a count column)
+    - column sums equal to the totals the API stated (applications, decisions, solutions)
+    - every column of the type the rule gives
+    - the five zips carry the same footnotes.csv
+    - a DuckDB without extensions opens every file
+    - no bloom filters
+
+modifications:
+  raw: none. The API's zips and JSON, byte for byte. third-party/ not published.
+  parquet:
+    - Year INTEGER, count columns BIGINT, countries "0" and id INTEGER, by an explicit table; a value that does not fit stops the build
+    - '"-" in a count column read as NULL'
+    - column names as the CSV headings, misspelling "Returned IDPss" included; no column added, renamed or dropped
+    - row order of the source
+    - footnotes.csv from population.zip; countries.json one row per item
+    - written with zstd, without bloom filters
